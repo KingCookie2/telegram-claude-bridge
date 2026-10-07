@@ -902,8 +902,14 @@ def cmd_setup(cfg_path: str, root_dir: str) -> int:
     cfg["telegram_bot_token"] = ""
     cfg["allowed_user_ids"] = users
     if not cfg.get("default_cwd"):
-        cfg["default_cwd"] = os.path.join(
-            os.path.dirname(root_dir.rstrip("\\/")), "DSprojects")
+        # The bridge normally sits beside the projects it works on, so aim at a
+        # sibling "DSprojects" -- but only when one is really there. Installed
+        # inside DSprojects (the usual case) the parent *is* the projects
+        # folder, and appending the name would produce DSprojects\DSprojects,
+        # a directory that does not exist. The session then fails to start.
+        parent = os.path.dirname(root_dir.rstrip("\\/"))
+        sibling = os.path.join(parent, "DSprojects")
+        cfg["default_cwd"] = sibling if os.path.isdir(sibling) else parent
     if not cfg.get("allowed_roots"):
         cfg["allowed_roots"] = [cfg["default_cwd"]]
     save_json_atomic(cfg_path, cfg)

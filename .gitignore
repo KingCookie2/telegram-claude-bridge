@@ -5,6 +5,12 @@ state.json
 bridge.log
 bridge.log.*
 
+# Anything dropped in here is treated as credential material (the API folder
+# held a plain-text bot token). Keep it out of git even by accident.
+API/
+*.token
+*.key
+
 # Files received from Telegram
 inbox/
 
