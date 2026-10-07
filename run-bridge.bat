@@ -1,11 +1,16 @@
 @echo off
 setlocal
-REM Telegram <-> Claude Code bridge.
+REM Telegram to Claude Code bridge.
 REM Keeps the bridge running, restarting it if it exits unexpectedly.
 REM Logs go to bridge.log in this folder as well as this window.
+REM
+REM Note: keep angle brackets out of this file, including REM lines and the
+REM title. cmd parses redirection before it parses the command, so a stray
+REM left-angle-bracket in a comment silently fails with "The system cannot
+REM find the file specified." Only the deliberate >nul redirects may use one.
 
 cd /d "%~dp0"
-title Telegram <-> Claude Code
+title Telegram - Claude Code Bridge
 
 set PYTHONUTF8=1
 set PYTHONIOENCODING=utf-8
