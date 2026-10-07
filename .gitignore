@@ -1,0 +1,13 @@
+# Secrets and runtime state -- never commit these
+.env
+config.json
+state.json
+bridge.log
+bridge.log.*
+
+# Files received from Telegram
+inbox/
+
+# Python
+__pycache__/
+*.py[cod]

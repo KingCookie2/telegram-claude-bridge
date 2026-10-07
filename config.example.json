@@ -1,0 +1,55 @@
+{
+  "_comment": "Copy to config.json (or just run: python bridge.py --setup). The bot token normally lives in .env instead of here.",
+
+  "telegram_bot_token": "",
+
+  "_allowed_user_ids": "Your Telegram numeric user id. Empty list = the bot refuses everyone. Message the bot and it will reply with your id.",
+  "allowed_user_ids": [],
+
+  "_allowed_chat_ids": "Optional. Group chats you want to allow, by chat id. Prefer allowed_user_ids.",
+  "allowed_chat_ids": [],
+
+  "_default_cwd": "Where Claude starts. Everything it does is relative to this unless you /cd.",
+  "default_cwd": "C:\\Users\\yourname\\Documents\\projects",
+
+  "_allowed_roots": "/cd and /send are confined to these directories. Empty = no confinement.",
+  "allowed_roots": [
+    "C:\\Users\\yourname\\Documents\\projects"
+  ],
+
+  "_model": "Leave empty to use your configured default. e.g. opus, sonnet, fable.",
+  "model": "",
+
+  "_skip_permissions": "true = full tool access, no prompts (what 'in full force' means). No human can answer a prompt in this setup, so false makes anything needing approval fail instead.",
+  "skip_permissions": true,
+  "permission_mode": "bypassPermissions",
+
+  "_setting_sources": "Leave empty to inherit user+project+local settings, so your CLAUDE.md, hooks and MCP servers all apply.",
+  "setting_sources": "",
+
+  "_max_budget_usd_per_turn": "Hard cap per turn. null = uncapped. Set a number (e.g. 2.0) if you want a safety net.",
+  "max_budget_usd_per_turn": null,
+
+  "turn_timeout_sec": 3600,
+
+  "include_partial_messages": false,
+
+  "_extra_dirs": "Additional directories Claude may touch, on top of default_cwd.",
+  "extra_dirs": [],
+
+  "append_system_prompt": "You are replying to your user over Telegram, running on their own desktop machine. They are almost certainly on a phone.\n\n- Your final message is the ONLY thing they see. Tool calls, tool output and intermediate notes are not shown to them. Never end a turn with just \"let me know if you'd like me to...\" - either do the work or ask one specific question.\n- Keep it short and phone-readable: a few sentences, or a short list. Avoid large code blocks, file dumps and wide tables unless explicitly asked.\n- You are running unattended and cannot ask a clarifying question mid-task. Make a sensible assumption, do the work, and say what you assumed. If a decision genuinely blocks you, end with that one question.\n- You have full tool permissions. Do the work rather than explaining how.\n- If you changed files, name them and say what changed, in a line or two.",
+
+  "_claude_command": "Leave empty to auto-detect. Set a full path if detection fails.",
+  "claude_command": "",
+
+  "progress_updates": true,
+  "progress_edit_interval_sec": 3.0,
+
+  "_max_queue": "How many messages may pile up in one chat before new ones are refused.",
+  "max_queue": 5,
+
+  "_idle_session_timeout_sec": "Shut the claude process down after this much idle time. The conversation is remembered and resumes on your next message.",
+  "idle_session_timeout_sec": 1800,
+
+  "max_upload_mb": 45
+}
