@@ -9,10 +9,20 @@ to the claude CLI. No network, no Telegram account, no Claude session.
 
 from __future__ import annotations
 
+import os
+import subprocess
 import sys
+import tempfile
+import time
 
 import tg
-from claude_session import ClaudeSession, describe_tool, find_claude_command
+from claude_session import (
+    IS_WINDOWS,
+    ClaudeSession,
+    _kill_tree,
+    describe_tool,
+    find_claude_command,
+)
 
 PASSED = 0
 FAILED: list[str] = []
@@ -174,6 +184,80 @@ line = describe_tool({"name": "Read", "input": {"file_path": r"C:\a\b\c.py"}})
 check("tool summary names the tool", line.startswith("Read:"), line)
 check("long tool detail is truncated",
       len(describe_tool({"name": "Bash", "input": {"command": "x" * 500}})) < 100)
+
+
+# --------------------------------------------------------------------------
+section("process tree teardown")
+
+
+def _pid_alive(pid: int | None) -> bool:
+    if not pid:
+        return False
+    if IS_WINDOWS:
+        out = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/NH"],
+                             capture_output=True, text=True).stdout
+        return str(pid) in out
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
+# The leak this guards: stop() used to terminate only the npm shim, so the
+# session grandchild outlived it with a dead parent and held its memory forever.
+# Reproduce that exact shape -- wrapper -> grandchild -- and prove the teardown
+# takes both.
+tmp = tempfile.gettempdir()
+helper = os.path.join(tmp, f"bridge-selftest-child-{os.getpid()}.py")
+pidfile = os.path.join(tmp, f"bridge-selftest-child-{os.getpid()}.pid")
+with open(helper, "w", encoding="utf-8") as fh:
+    fh.write("import os, sys, time\n"
+             "with open(sys.argv[1], 'w', encoding='utf-8') as fh:\n"
+             "    fh.write(str(os.getpid()))\n"
+             "time.sleep(120)\n")
+
+wrapper = subprocess.Popen(
+    [os.environ.get("COMSPEC", "cmd.exe"), "/c", sys.executable, helper, pidfile],
+    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+)
+grandchild = None
+for _ in range(100):
+    if os.path.exists(pidfile):
+        try:
+            grandchild = int(open(pidfile, encoding="utf-8").read().strip())
+        except ValueError:
+            grandchild = None
+        if grandchild:
+            break
+    time.sleep(0.1)
+
+check("grandchild started", bool(grandchild), f"pidfile={pidfile}")
+check("grandchild alive before teardown", _pid_alive(grandchild))
+
+signalled = _kill_tree(wrapper.pid)
+check("teardown signalled the tree", signalled)
+try:
+    wrapper.wait(timeout=10)
+except Exception:
+    pass
+
+reaped = False
+for _ in range(50):
+    if not _pid_alive(grandchild):
+        reaped = True
+        break
+    time.sleep(0.1)
+
+check("wrapper is gone", wrapper.poll() is not None)
+check("grandchild is gone (this is the leak)", reaped,
+      f"pid {grandchild} survived the teardown")
+
+for path in (helper, pidfile):
+    try:
+        os.remove(path)
+    except OSError:
+        pass
 
 
 # --------------------------------------------------------------------------

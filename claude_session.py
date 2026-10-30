@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import signal
 import subprocess
 import threading
 import time
@@ -62,6 +63,40 @@ def _wrap_for_windows(argv: list[str]) -> list[str]:
     if IS_WINDOWS and argv[0].lower().endswith(_BATCH_SUFFIXES):
         return [os.environ.get("COMSPEC", "cmd.exe"), "/c", *argv]
     return argv
+
+
+def _kill_tree(pid: int) -> bool:
+    """Kill a process and every process below it. True if the tree was signalled.
+
+    `Popen.terminate()`/`kill()` map to TerminateProcess and only ever touch the
+    one process they name. Because the CLI is reached through an npm shim, the
+    session we actually care about is a *grandchild*
+    (cmd.exe -> claude.exe): terminating the shim leaves it alive and orphaned.
+    Its stdin pipe dies with the wrapper, so it can never be spoken to again --
+    but it keeps its memory. That leak accumulated 21 processes, ~2.4 GB,
+    between 10/07 and 10/13.
+
+    Windows: taskkill /T walks the child tree.
+    POSIX:   the child is started with start_new_session=True, so its whole
+             process group can be signalled at once.
+    """
+    if IS_WINDOWS:
+        try:
+            result = subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(pid)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=20,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+            return result.returncode == 0
+        except Exception:
+            return False
+    try:
+        os.killpg(os.getpgid(pid), signal.SIGTERM)
+        return True
+    except Exception:
+        return False
 
 
 class ClaudeSession:
@@ -176,6 +211,9 @@ class ClaudeSession:
         )
         if IS_WINDOWS:
             kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        else:
+            # Own process group, so stop() can signal the whole tree (_kill_tree).
+            kwargs["start_new_session"] = True
 
         self._log(f"starting: {' '.join(argv)}  (cwd={self.cwd})")
         self._expected_exit = False
@@ -200,8 +238,14 @@ class ClaudeSession:
         if not proc or proc.poll() is not None:
             return
         self._expected_exit = True
+        # Take the whole tree, not just the shim we hold a handle to -- see
+        # _kill_tree for why terminating the shim alone orphans the session.
+        if not _kill_tree(proc.pid):
+            try:
+                proc.terminate()
+            except Exception:
+                pass
         try:
-            proc.terminate()
             proc.wait(timeout=timeout)
         except Exception:
             try:
