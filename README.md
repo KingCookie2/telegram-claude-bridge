@@ -6,6 +6,11 @@ and the answer comes back as a Telegram message.
 
 No dependencies beyond Python 3.10+. Nothing to `pip install`.
 
+**Setting this up for the first time?** There is a longer illustrated guide in
+[`docs/index.html`](docs/index.html) — written to be published as a GitHub Page —
+covering setup, configuration, and the memory system that keeps context across
+sessions.
+
 ---
 
 ## Quick start

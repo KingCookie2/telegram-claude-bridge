@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Telegram ⇄ Claude Code — setup guide</title>
+<meta name="description" content="Run a full Claude Code session on your desktop from a Telegram chat, with durable memory that survives between sessions.">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-soft: #f6f7f9;
+    --card: #ffffff;
+    --text: #17191d;
+    --muted: #5b6270;
+    --line: #e2e5ea;
+    --accent: #2f6feb;
+    --accent-soft: #eaf1fe;
+    --warn: #b42318;
+    --warn-soft: #fef3f2;
+    --ok: #067647;
+    --ok-soft: #ecfdf3;
+    --code-bg: #f4f5f7;
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1116;
+      --bg-soft: #131820;
+      --card: #151a22;
+      --text: #e6e9ef;
+      --muted: #9aa3b2;
+      --line: #252c37;
+      --accent: #7aa7ff;
+      --accent-soft: #1a2434;
+      --warn: #ff9a92;
+      --warn-soft: #2a1616;
+      --ok: #6ee7a8;
+      --ok-soft: #12241b;
+      --code-bg: #10151c;
+    }
+  }
+  html[data-theme="light"] {
+    --bg: #ffffff; --bg-soft: #f6f7f9; --card: #ffffff; --text: #17191d; --muted: #5b6270;
+    --line: #e2e5ea; --accent: #2f6feb; --accent-soft: #eaf1fe; --warn: #b42318;
+    --warn-soft: #fef3f2; --ok: #067647; --ok-soft: #ecfdf3; --code-bg: #f4f5f7;
+  }
+  html[data-theme="dark"] {
+    --bg: #0e1116; --bg-soft: #131820; --card: #151a22; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #252c37; --accent: #7aa7ff; --accent-soft: #1a2434; --warn: #ff9a92;
+    --warn-soft: #2a1616; --ok: #6ee7a8; --ok-soft: #12241b; --code-bg: #10151c;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 22px; }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .top-inner {
+    max-width: 860px; margin: 0 auto; padding: 12px 22px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .brand { font-weight: 650; letter-spacing: .01em; font-size: 15px; }
+  .brand span { color: var(--muted); font-weight: 400; }
+  .top nav { margin-left: auto; display: flex; gap: 16px; font-size: 14px; }
+  .top nav a { color: var(--muted); }
+  .top nav a:hover { color: var(--text); text-decoration: none; }
+  @media (max-width: 680px) { .top nav { display: none; } }
+
+  .theme-btn {
+    background: var(--bg-soft); border: 1px solid var(--line); color: var(--muted);
+    border-radius: 8px; padding: 5px 9px; font-size: 13px; cursor: pointer;
+    font-family: inherit;
+  }
+  .theme-btn:hover { color: var(--text); }
+
+  .hero { padding: 54px 0 26px; border-bottom: 1px solid var(--line); }
+  .eyebrow {
+    font-size: 12.5px; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; margin-bottom: 12px;
+  }
+  h1 { font-size: clamp(30px, 4.4vw, 42px); line-height: 1.15; margin: 0 0 14px; letter-spacing: -.02em; }
+  .lede { font-size: 18px; color: var(--muted); margin: 0 0 22px; max-width: 700px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .badge {
+    font-size: 12.5px; padding: 4px 10px; border-radius: 999px;
+    background: var(--bg-soft); border: 1px solid var(--line); color: var(--muted);
+  }
+
+  section { padding: 40px 0 8px; border-bottom: 1px solid var(--line); }
+  section:last-of-type { border-bottom: 0; }
+  h2 { font-size: 24px; letter-spacing: -.01em; margin: 0 0 6px; }
+  h2 .num {
+    display: inline-block; min-width: 28px; color: var(--muted);
+    font-variant-numeric: tabular-nums; font-weight: 500;
+  }
+  h3 { font-size: 17px; margin: 26px 0 8px; }
+  h4 { font-size: 15px; margin: 20px 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  p, li { color: var(--text); }
+  .sub { color: var(--muted); margin: 0 0 18px; }
+
+  ul, ol { padding-left: 22px; }
+  li { margin: 5px 0; }
+  li > ul, li > ol { margin: 4px 0; }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Consolas, monospace;
+    font-size: .895em;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 1px 5px; border-radius: 5px;
+    word-break: break-word;
+  }
+  pre {
+    position: relative;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 12px 0 16px;
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+  pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+  .copy {
+    position: absolute; top: 8px; right: 8px;
+    background: var(--card); border: 1px solid var(--line); color: var(--muted);
+    border-radius: 6px; font: inherit; font-size: 11.5px; padding: 3px 8px;
+    cursor: pointer; opacity: 0; transition: opacity .15s;
+  }
+  pre:hover .copy, .copy:focus { opacity: 1; }
+  .copy.done { color: var(--ok); border-color: var(--ok); }
+
+  .callout {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 16px 0;
+  }
+  .callout p { margin: 0; }
+  .callout p + p { margin-top: 8px; }
+  .callout.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .callout.ok { border-left-color: var(--ok); background: var(--ok-soft); }
+  .callout .label {
+    display: block; font-size: 12px; font-weight: 700; letter-spacing: .07em;
+    text-transform: uppercase; margin-bottom: 5px; color: var(--muted);
+  }
+  .callout.warn .label { color: var(--warn); }
+  .callout.ok .label { color: var(--ok); }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 18px; font-size: 14.5px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  .table-scroll { overflow-x: auto; }
+
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 18px 0 6px;
+  }
+  @media (max-width: 700px) { .flow { grid-template-columns: 1fr 1fr; } }
+  .flow .step {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  .flow .step .n {
+    font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); font-weight: 700;
+  }
+  .flow .step strong { display: block; margin: 4px 0 2px; font-size: 14.5px; }
+  .flow .step span { color: var(--muted); font-size: 13px; }
+
+  .toc {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px;
+    margin: 18px 0 6px; font-size: 15px;
+  }
+  @media (max-width: 600px) { .toc { grid-template-columns: 1fr; } }
+  .toc a { color: var(--text); }
+  .toc a:hover { color: var(--accent); text-decoration: none; }
+  .toc .n { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 8px; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 16px 0; }
+  @media (max-width: 700px) { .cols { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .card h4 { margin-top: 0; }
+
+  footer { padding: 34px 0 60px; color: var(--muted); font-size: 13.5px; }
+
+  .kbd {
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 12.5px; border: 1px solid var(--line); border-bottom-width: 2px;
+    border-radius: 5px; padding: 0 5px; background: var(--bg-soft);
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">Telegram ⇄ Claude Code <span>— setup guide</span></div>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#start">Setup</a>
+      <a href="#memory">Memory</a>
+      <a href="#security">Safety</a>
+    </nav>
+    <button class="theme-btn" id="theme" title="Toggle light / dark">◐</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="eyebrow">Self-hosted · single desktop · no cloud relay</div>
+    <h1>Text a Telegram bot. Your desktop runs Claude Code.</h1>
+    <p class="lede">
+      A small Python bridge keeps a full Claude Code session alive on your machine. You message a
+      bot from your phone; Claude works in your real folders with your real tools, then answers in
+      chat. Nothing is proxied through a third-party server — Telegram carries the messages, and
+      the work happens where your files are.
+    </p>
+    <div class="badges">
+      <span class="badge">Python 3.10+</span>
+      <span class="badge">No pip installs</span>
+      <span class="badge">Windows · macOS · Linux</span>
+      <span class="badge">~$0.02–0.35 per turn</span>
+    </div>
+  </div>
+
+  <section id="how">
+    <h2><span class="num">01</span>How it works</h2>
+    <p class="sub">Four moving parts, and one design decision that matters.</p>
+
+    <div class="flow">
+      <div class="step"><div class="n">1</div><strong>You text</strong><span>Telegram app on your phone</span></div>
+      <div class="step"><div class="n">2</div><strong>The bridge polls</strong><span>Python process on your desktop</span></div>
+      <div class="step"><div class="n">3</div><strong>Claude runs</strong><span>A real session in your folders</span></div>
+      <div class="step"><div class="n">4</div><strong>Reply arrives</strong><span>Answer, files, live progress</span></div>
+    </div>
+
+    <h3>Why not just spawn <code>claude -p</code> per message?</h3>
+    <p>
+      Because it is expensive. Each fresh headless launch re-primes the entire system prompt, all
+      tool definitions and every MCP tool schema. Measured on a one-word reply: <strong>~91k
+      uncached input tokens</strong>, roughly $0.46 in Anthropic pricing terms, for the word “hi”.
+    </p>
+    <p>
+      So the bridge keeps <strong>one long-lived <code>claude</code> process per chat</strong> and
+      talks to it over the stream-json protocol:
+    </p>
+    <pre><code>claude -p --input-format stream-json --output-format stream-json --verbose</code></pre>
+    <p>
+      Your turns go in as newline-delimited JSON on stdin; <code>assistant</code>,
+      <code>system</code> and <code>result</code> events come back on stdout. A
+      <code>result</code> event ends the turn. The second turn of the same conversation then costs
+      <strong>~170 input tokens</strong> instead of 91,000, because the prompt cache is warm.
+    </p>
+    <p>
+      Conversation state lives in that child process's own session. If it dies, the bridge
+      relaunches with <code>--resume &lt;session_id&gt;</code>, so a crash does not erase the
+      thread. After 30 idle minutes the process is shut down and resumed on your next message.
+    </p>
+
+    <h4>Files</h4>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>File</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><code>bridge.py</code></td><td>Poll loop, per-chat worker, commands, setup / check CLI</td></tr>
+          <tr><td><code>claude_session.py</code></td><td>The long-lived <code>claude</code> process and its JSON protocol</td></tr>
+          <tr><td><code>tg.py</code></td><td>Telegram Bot API client — message splitting, HTML, uploads, retries</td></tr>
+          <tr><td><code>selftest.py</code></td><td>Offline checks; needs no bot token</td></tr>
+          <tr><td><code>run-bridge.bat</code></td><td>Launcher with crash-restart (use <code>.sh</code>/direct <code>python bridge.py</code> elsewhere)</td></tr>
+          <tr><td><code>install-startup.ps1</code></td><td>Optional Windows logon task</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="need">
+    <h2><span class="num">02</span>What you need</h2>
+    <ul>
+      <li><strong>A desktop that stays on</strong> while you want to reach it. Sleep equals silence — the bridge cannot answer through a sleeping machine.</li>
+      <li><strong>Python 3.10+</strong>. Nothing else; the bridge uses only the standard library.</li>
+      <li><strong>Claude Code installed and already logged in</strong> on that desktop. Run <code>claude</code> once in a terminal and complete any login before wiring the bot up.</li>
+      <li><strong>A Telegram account</strong> to talk to <span class="kbd">@BotFather</span> and create the bot.</li>
+      <li>Optionally, an Anthropic-compatible endpoint instead of an Anthropic subscription — see <a href="#endpoint">the last section</a>.</li>
+    </ul>
+    <div class="callout">
+      <span class="label">Check first</span>
+      <p>If <code>claude</code> does not run by itself in a terminal, the bridge will not fix that. Get a normal interactive session working first — same account, same shell context.</p>
+    </div>
+  </section>
+
+  <section id="start">
+    <h2><span class="num">03</span>Setup, start to finish</h2>
+    <p class="sub">About ten minutes, most of it waiting for your first message to arrive.</p>
+
+    <h3>Step 1 — get the code</h3>
+    <pre><code>git clone &lt;this-repo-url&gt; telegram-bridge
+cd telegram-bridge</code></pre>
+    <p>No <code>pip install</code>, no virtualenv, no build step. If <code>python --version</code> says 3.10 or newer, you are done here.</p>
+
+    <h3>Step 2 — make a bot with BotFather</h3>
+    <ol>
+      <li>In Telegram, open <a href="https://t.me/BotFather">@BotFather</a>.</li>
+      <li>Send <code>/newbot</code>, choose a display name, then a username ending in <code>bot</code>.</li>
+      <li>Copy the token it returns, shaped like <code>123456789:AA…</code>. <strong>That token is the entire credential.</strong> Anyone holding it controls your bot.</li>
+    </ol>
+
+    <h3>Step 3 — first run</h3>
+    <p>With no <code>config.json</code> present, the launcher drops into setup:</p>
+    <pre><code>run-bridge.bat          # Windows
+python bridge.py --setup  # anything else</code></pre>
+    <p>It will:</p>
+    <ol>
+      <li>Ask for the bot token and verify it against Telegram (wrong token fails immediately, before anything is written).</li>
+      <li>Write <code>.env</code> with <code>TELEGRAM_BOT_TOKEN=…</code>.</li>
+      <li>Wait up to three minutes for you to message the bot, and learn your numeric Telegram user id from that message.</li>
+      <li>Write <code>config.json</code> with you as the only allowed user, and a working directory defaulted to the folder the bridge sits in — or to a sibling <code>DSprojects</code> folder when one exists. Edit it if that is not where you want Claude working.</li>
+    </ol>
+    <div class="callout ok">
+      <span class="label">Sanity check</span>
+      <p><code>python bridge.py --check</code> validates the token, the <code>claude</code> command, the working directory and the allowlist, then exits without starting the poll loop. Run it before every change of config.</p>
+    </div>
+
+    <h3>Step 4 — send it something</h3>
+    <p>Message the bot. Anything that is not a slash command is a prompt. While a turn runs you get a live status message that lists the tools being used and updates in place, then a footer like <code>6 tool calls · 42s · $0.031</code>.</p>
+    <p>Send a photo or a document and it lands in <code>inbox/</code>; the local path is handed to Claude with your prompt, so “what's wrong with this screenshot?” just works.</p>
+  </section>
+
+  <section id="config">
+    <h2><span class="num">04</span>The config that matters</h2>
+    <p class="sub">Everything lives in <code>config.json</code>. These are the fields worth understanding.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Field</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>allowed_user_ids</code></td>
+            <td>The real gate. Numeric Telegram ids. The bridge refuses every message from anyone else and <strong>refuses to start at all</strong> if the list is empty.</td>
+          </tr>
+          <tr>
+            <td><code>default_cwd</code></td>
+            <td>Where Claude starts. Everything is relative to this unless you <code>/cd</code>.</td>
+          </tr>
+          <tr>
+            <td><code>allowed_roots</code></td>
+            <td>Confines <code>/cd</code> and <code>/send</code> to these directories. Empty means no confinement.</td>
+          </tr>
+          <tr>
+            <td><code>skip_permissions</code></td>
+            <td><code>true</code> = full tool access, nothing asks for confirmation. <code>false</code> = anything needing approval is auto-denied and fails cleanly. See <a href="#security">Safety</a>.</td>
+          </tr>
+          <tr>
+            <td><code>setting_sources</code></td>
+            <td>Leave empty so sessions inherit your user, project and local settings — which is what makes your <code>CLAUDE.md</code>, hooks, skills and MCP servers apply over Telegram.</td>
+          </tr>
+          <tr>
+            <td><code>max_budget_usd_per_turn</code></td>
+            <td>Hard per-turn ceiling in dollars. <code>null</code> is uncapped. Set a number if you want a safety net.</td>
+          </tr>
+          <tr>
+            <td><code>idle_session_timeout_sec</code></td>
+            <td>Shut the Claude process down after this much idle time (default 1800). The conversation is remembered and resumes on your next message.</td>
+          </tr>
+          <tr>
+            <td><code>max_queue</code></td>
+            <td>How many of your messages may pile up per chat before new ones are refused.</td>
+          </tr>
+          <tr>
+            <td><code>append_system_prompt</code></td>
+            <td>Extra instructions for every turn. The shipped default is tuned for phone-sized answers — short, no file dumps, make an assumption instead of asking mid-task.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout">
+      <span class="label">Edit carefully</span>
+      <p><code>config.json</code> is read at start. Restart the bridge after changing it. Keep the bot token in <code>.env</code>, not in this file — both are gitignored, but only one of them should ever be opened in an editor by accident.</p>
+    </div>
+  </section>
+
+  <section id="autostart">
+    <h2><span class="num">05</span>Start it at logon (optional)</h2>
+    <pre><code>powershell -ExecutionPolicy Bypass -File install-startup.ps1
+powershell -ExecutionPolicy Bypass -File install-startup.ps1 -Status
+powershell -ExecutionPolicy Bypass -File install-startup.ps1 -Uninstall</code></pre>
+    <p>
+      On Windows this registers a scheduled task that runs the launcher in a hidden window at
+      logon, allows battery start, restarts up to three times, and has no execution time limit —
+      it is meant to run for the whole session. On other platforms, run
+      <code>python bridge.py</code> under systemd, <code>launchd</code>, or <code>tmux</code>.
+    </p>
+    <div class="callout warn">
+      <span class="label">One instance only</span>
+      <p>Two bridges both call <code>getUpdates</code> and eat each other's messages — the symptom is messages that randomly vanish. Check for a running <code>bridge.py</code> before starting another, including before kicking the scheduled task by hand.</p>
+    </div>
+  </section>
+
+  <section id="commands">
+    <h2><span class="num">06</span>Using it</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Send</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td><em>anything else</em></td><td>A prompt, sent to Claude</td></tr>
+          <tr><td><code>/help</code></td><td>The command list (<code>/start</code> does the same)</td></tr>
+          <tr><td><code>/status</code></td><td>Working directory, model, session, spend</td></tr>
+          <tr><td><code>/new</code></td><td>Forget the conversation, start a fresh session — memory files survive</td></tr>
+          <tr><td><code>/stop</code></td><td>Abort the turn that is running</td></tr>
+          <tr><td><code>/cd &lt;path&gt;</code></td><td>Change working directory (starts a fresh conversation there)</td></tr>
+          <tr><td><code>/model &lt;name&gt;</code></td><td>Switch model for the next message</td></tr>
+          <tr><td><code>/send &lt;path&gt;</code></td><td>Send a file from the desktop back to you</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Long answers are split across messages automatically, and Telegram HTML that fails to parse
+      is retried as plain text — if you ever see literal <code>**asterisks**</code>, that fallback
+      fired.
+    </p>
+  </section>
+
+  <section id="memory">
+    <h2><span class="num">07</span>Memory keeping</h2>
+    <p class="sub">The part that makes it feel like one long-running assistant instead of a stranger each morning.</p>
+
+    <p>There are three separate layers, and they solve different problems. Confusing them is why most “give my bot a memory” attempts end up either useless or dangerous.</p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Layer</th><th>Lives in</th><th>Survives</th><th>Holds</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Session</strong></td>
+            <td>The child <code>claude</code> process</td>
+            <td>Process restarts and 30-min idle shutdowns (via <code>--resume</code>); lost on <code>/new</code></td>
+            <td>The conversation itself — what you said two turns ago</td>
+          </tr>
+          <tr>
+            <td><strong>Memory</strong></td>
+            <td><code>.claude/memory/</code> on disk</td>
+            <td>Everything, including <code>/new</code> and a new machine</td>
+            <td>Durable facts: decisions, measurements, preferences, dead ends</td>
+          </tr>
+          <tr>
+            <td><strong>Instructions</strong></td>
+            <td><code>CLAUDE.md</code></td>
+            <td>Everything</td>
+            <td>Standing rules about how to work — including how to use memory</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      The bridge passes <code>setting_sources</code> through, so a headless session started from
+      Telegram loads the same <code>CLAUDE.md</code> and the same memory directory as a session you
+      open by hand in that folder. Memory therefore works identically whether you are at the desk
+      or on your phone.
+    </p>
+
+    <h3>The layout</h3>
+    <pre><code>your-project/
+├── CLAUDE.md                 the rules — read at the start of every session
+└── .claude/
+    └── memory/
+        ├── MEMORY.md         index: one line per note, always loaded
+        ├── budget-format.md  one fact per file, kebab-case name
+        ├── deploy-server.md
+        └── rule-verify-paths.md</code></pre>
+
+    <p><code>MEMORY.md</code> is the index and is the only file guaranteed to be in context at
+    the start. That is the whole trick: the index is cheap to load, and it tells the model which
+    individual notes are worth opening for the question at hand. Keep it to one line per note.</p>
+
+    <h3>What one note looks like</h3>
+    <pre><code>---
+name: deploy-server
+description: production box is 10.0.0.12, deploys go through the staging tunnel
+metadata:
+  type: project
+---
+
+Deploys run from `~/sites/www` on 10.0.0.12. The staging tunnel must be up first —
+`./tunnel.sh up` — or the rsync silently lands in the wrong tree.
+
+Related: [[backup-schedule]]</code></pre>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th><code>type</code></th><th>Use for</th></tr></thead>
+        <tbody>
+          <tr><td><code>user</code></td><td>Who you are — role, expertise, standing preferences</td></tr>
+          <tr><td><code>feedback</code></td><td>Corrections and confirmed approaches, <em>with the why</em>. These are the highest-value notes you will write.</td></tr>
+          <tr><td><code>project</code></td><td>Ongoing work, goals, constraints that are not derivable from the code or git history</td></tr>
+          <tr><td><code>reference</code></td><td>Pointers outward — URLs, dashboards, ticket numbers</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>The rules, as a block you can paste</h3>
+    <p>Memory without rules rots: duplicates pile up, relative dates go stale, and confident
+    wrong notes outlive the facts they described. Put this in <code>CLAUDE.md</code> — it is what
+    turns a folder of notes into a memory system.</p>
+    <pre><code># Memory
+
+Durable notes live in `.claude/memory/`. `MEMORY.md` is the index and is read at the
+start of every session. Read it first; open only the notes it points at.
+
+## Writing memory
+- Save durable facts without being asked — decisions, measurements, preferences,
+  dead ends someone would otherwise repeat.
+- One fact per file, kebab-case name, with frontmatter:
+
+  ---
+  name: short-kebab-slug
+  description: one line, used to decide relevance during recall
+  metadata:
+    type: user | feedback | project | reference
+  ---
+
+  the fact, then "Why:" and "How to apply:" for feedback and project notes.
+
+- Link related notes with [[their-name]].
+
+## Maintenance
+- Update the existing note instead of writing a near-duplicate.
+- Delete notes that turn out to be wrong; a stale note is worse than none.
+- Convert relative dates to absolute ones ("next Friday" -> 2026-11-06).
+- After writing or changing a note, fix its line in MEMORY.md.
+- Do not record what the repo already records: structure, history, obvious code facts.
+
+## Trust
+- A note is a claim, not proof. Re-read the file, or the doc, before asserting a
+  path, flag, version or number that came from memory.
+- Never store secrets, tokens, keys, or passwords in memory files.</code></pre>
+
+    <div class="callout warn">
+      <span class="label">The one that bites</span>
+      <p>A memory written today is confidently re-asserted in three weeks. If the note names a file,
+      a flag or a function, the model must check that it still exists before recommending it —
+      otherwise you get a helpful answer about code that was refactored away. The “a note is a
+      claim” line above is doing more work than the rest of the block combined.</p>
+    </div>
+
+    <h3>Keeping it healthy</h3>
+    <ul>
+      <li><strong>Start the index at zero.</strong> Ten sharp notes beat a hundred vague ones; recall quality tracks index quality.</li>
+      <li><strong>Prune on a schedule.</strong> Once a month, read <code>MEMORY.md</code> top to bottom and delete anything you would not act on.</li>
+      <li><strong>Back it up.</strong> It is plain Markdown — commit it, or put it in a synced folder. This is also how you move the whole setup to a new machine.</li>
+      <li><strong>Keep it out of public repos.</strong> Notes about your projects, clients and machines are not for sharing, even when the code is.</li>
+    </ul>
+  </section>
+
+  <section id="cost">
+    <h2><span class="num">08</span>What it costs</h2>
+    <p>
+      This runs a full agent with all your MCP servers attached, so it is not free and not trivial.
+      Measured range on a desktop with a handful of MCP servers: <strong>~$0.02–$0.35 per
+      turn</strong>, depending on how much work Claude does and how well the prompt cache hits.
+      Cached turns are cents; a turn that reads forty files is not.
+    </p>
+    <ul>
+      <li>Set <code>max_budget_usd_per_turn</code> to a number for a hard ceiling.</li>
+      <li>Lower <code>idle_session_timeout_sec</code> if sessions linger overnight.</li>
+      <li>A cheaper model for routine work is the biggest lever — invoke it with <code>/model</code>.</li>
+      <li><code>/status</code> shows cumulative session spend.</li>
+    </ul>
+  </section>
+
+  <section id="security">
+    <h2><span class="num">09</span>Safety — read this before you enable it</h2>
+    <div class="callout warn">
+      <span class="label">The consequence, plainly</span>
+      <p>With <code>skip_permissions: true</code>, anyone who can message this bot can run commands on your desktop as you, with no confirmation. A prompt asking Claude to delete files, push a repo or send mail is simply carried out.</p>
+    </div>
+    <p>That setting exists because a headless run cannot answer a permission prompt — anything needing approval would otherwise fail rather than run. Set it to <code>false</code> if you would rather have prompts auto-denied; the boundary is blunt but real.</p>
+
+    <div class="cols">
+      <div class="card">
+        <h4>What actually protects you</h4>
+        <ul>
+          <li><code>allowed_user_ids</code> — the only real gate. The bridge refuses to start with it empty.</li>
+          <li><code>allowed_roots</code> — confines <code>/cd</code> and <code>/send</code>.</li>
+          <li>The token in <code>.env</code> — treat it as a password. If it leaks, revoke it with <span class="kbd">@BotFather</span>.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>What does not</h4>
+        <ul>
+          <li>A hard-to-guess bot username. Bots are discoverable; that is obscurity.</li>
+          <li>Group-chat privacy. Anything posted in a group is visible to everyone in it.</li>
+          <li>“Nobody knows the name.” Assume someone can find it and add your id only if you recognise it.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h4>Never commit</h4>
+    <p><code>.env</code>, <code>config.json</code>, <code>state.json</code>, <code>bridge.log</code> and <code>inbox/</code> — the token, your chat state, and everything Claude touched. The shipped <code>.gitignore</code> already covers them. Keep it that way.</p>
+  </section>
+
+  <section id="trouble">
+    <h2><span class="num">10</span>Troubleshooting</h2>
+
+    <h3>“Not authorized”, and no reply from Claude</h3>
+    <p>By design. The bot replies with the sender's numeric id — add it to <code>allowed_user_ids</code> and restart. Never add an id you do not recognise.</p>
+
+    <h3>Nothing happens when I message it</h3>
+    <p>Check <code>bridge.log</code> next to <code>bridge.py</code>. If the process is not running, the launcher will say why. On Windows, check the scheduled task state with <code>install-startup.ps1 -Status</code>.</p>
+
+    <h3>Claude exits unexpectedly</h3>
+    <p>The bridge auto-resumes with <code>--resume</code>, so just send your next message. Repeated exits usually mean a broken hook or an MCP server that hangs at startup — the log keeps the child's last stderr lines.</p>
+
+    <h3>Formatting looks wrong</h3>
+    <p>Telegram HTML rejects an entire message if one entity is malformed. The client retries as plain text when that happens; raw <code>**asterisks**</code> mean the fallback fired.</p>
+
+    <h3>Memory grows without limit, or is wrong</h3>
+    <p>That is a rules problem, not a storage problem. Re-read the Maintenance block in <a href="#memory">Memory keeping</a>: one fact per file, update instead of duplicating, delete wrong notes, fix the index line every time.</p>
+
+    <h3>The desktop slowly runs out of memory (Windows)</h3>
+    <p>
+      Older builds leaked a <code>claude.exe</code> on every session teardown: the CLI sits behind
+      an npm shim, so the process that matters is a <em>grandchild</em>, and terminating the shim
+      orphaned it with a dead stdin pipe — unreachable, still holding memory. The current
+      <code>claude_session.py</code> kills the whole process tree
+      (<code>taskkill /F /T /PID</code> on Windows, a process group on POSIX) and
+      <code>selftest.py</code> pins the fix with a live wrapper/grandchild test.
+    </p>
+    <p>If it ever regrows, the shape to look for is a <code>claude.exe</code> whose parent is gone. Confirm the bridge's own tree has <strong>no</strong> <code>claude.exe</code> child before touching anything, then kill the leaked ones by explicit PID.</p>
+
+    <h3>“Not logged in” even though you are</h3>
+    <p>Usually a stale daemon lock rather than an account problem: a dead <code>claude.exe</code> still holds <code>daemon.lock</code>, so <code>claude daemon stop</code> answers “no daemon running” and does nothing. Kill the process holding the lock. Watch out for integrity levels — a daemon started from an elevated shell cannot be reached or killed from a normal one, and the reverse.</p>
+  </section>
+
+  <section id="endpoint">
+    <h2><span class="num">11</span>Optional: a different backend</h2>
+    <p class="sub">If you are not using an Anthropic subscription, point Claude Code at any Anthropic-compatible endpoint.</p>
+    <p>Set these in the <code>env</code> block of <code>~/.claude/settings.json</code> rather than only in shell variables, so the daemon, background agents and bridge sessions all read the same file:</p>
+    <pre><code>{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://your-endpoint.example/anthropic",
+    "ANTHROPIC_AUTH_TOKEN": "…",
+    "ANTHROPIC_MODEL": "your-model-name",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "your-model-name",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "your-model-name",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "your-model-name"
+  }
+}</code></pre>
+    <p>Two traps worth knowing, both learned the hard way:</p>
+    <div class="callout warn">
+      <span class="label">Unrecognized model = early compaction</span>
+      <p>If Claude Code has no catalog entry for your model id, it assumes a 200k window and auto-compacts roughly five times too early, throwing away most of your usable context. The warning reads “Claude Code doesn't recognize the model …”. Fix it with <code>CLAUDE_CODE_MAX_CONTEXT_TOKENS</code> set to your endpoint's real window — for a 1M model, <code>1048576</code>.</p>
+    </div>
+    <div class="callout warn">
+      <span class="label">The dollar figure is a lie</span>
+      <p><code>total_cost_usd</code> in a <code>result</code> event is computed from Anthropic's price table, so against a third-party endpoint it is meaningless — and cumulative per session, not per turn. Judge cost from token counts and your provider's published rates. If the provider has cheap and expensive hours, schedule heavy work accordingly.</p>
+    </div>
+    <p>Also: never commit <code>~/.claude/settings.json</code> once it holds a token, and never put a credential in a chat message, an issue, or a memory file.</p>
+  </section>
+
+  <footer>
+    <p>
+      Built and run on one desktop. Python standard library only; no service sits between your
+      phone and your files. Source and this guide live in the same repository.
+    </p>
+    <p>Keep <code>config.json</code> and <code>.env</code> out of git, keep the allowlist short, and check the log before assuming the bridge is dead.</p>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var btn = document.getElementById('theme');
+  var root = document.documentElement;
+  var saved = null;
+  try { saved = localStorage.getItem('theme'); } catch (e) {}
+  if (saved) root.setAttribute('data-theme', saved);
+
+  btn.addEventListener('click', function () {
+    var current = root.getAttribute('data-theme');
+    if (!current) {
+      current = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    var next = current === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('theme', next); } catch (e) {}
+  });
+
+  document.querySelectorAll('pre').forEach(function (pre) {
+    var b = document.createElement('button');
+    b.className = 'copy';
+    b.type = 'button';
+    b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      var text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+      var done = function () {
+        b.textContent = 'copied';
+        b.classList.add('done');
+        setTimeout(function () { b.textContent = 'copy'; b.classList.remove('done'); }, 1400);
+      };
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(done, done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta); done();
+      }
+    });
+    pre.appendChild(b);
+  });
+})();
+</script>
+</body>
+</html>
